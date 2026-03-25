@@ -3,9 +3,10 @@
 // Highlights elements on hover, returns best CSS selector on click.
 
 (function() {
-  // Prevent double injection
+  // Toggle: if already active, destroy and exit
   if (window.__spawnkitPicker) {
     window.__spawnkitPicker.destroy();
+    chrome.runtime.sendMessage({ type: 'pickerCancelled' }).catch(() => {});
     return;
   }
 

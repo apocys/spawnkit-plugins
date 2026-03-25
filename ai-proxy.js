@@ -8,7 +8,8 @@ const http = require('node:http');
 const PORT = process.env.PORT || 3460;
 const OPENCLAW_URL = process.env.OPENCLAW_URL || 'http://localhost:8317/v1/chat/completions';
 const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '';  // CLIProxyAPI doesn't need auth from localhost
-const MODEL = process.env.MODEL || 'claude-sonnet-4-20250514';
+const MODEL_FAST = process.env.MODEL_FAST || 'claude-sonnet-4-20250514';
+const MODEL_PREMIUM = process.env.MODEL_PREMIUM || 'claude-opus-4-6';
 const REQUEST_TIMEOUT_MS = 90_000;
 const MAX_PROMPT_LENGTH = 4000;
 const MAX_BODY_BYTES = 20_000;
@@ -179,21 +180,44 @@ function validateOps(ops) {
   });
 }
 
-// ── OpenClaw gateway call with timeout ───────────────────────────────────
+// ── Detect if prompt needs premium model ──────────────────────────────────
 
-async function callOpenClaw(prompt, origin) {
-  const userMessage = origin
-    ? `Website: ${origin}\n\nRequest: ${prompt}`
-    : prompt;
+const PREMIUM_TRIGGERS = [
+  'award', 'awwwards', 'premium', 'redesign', 'beautiful', 'stunning',
+  'make it look good', 'make it look great', 'professional', 'modern',
+  'whole page', 'full redesign', 'overhaul', 'transform',
+];
 
+function selectModel(prompt) {
+  const lower = prompt.toLowerCase();
+  if (PREMIUM_TRIGGERS.some(t => lower.includes(t))) return MODEL_PREMIUM;
+  return MODEL_FAST;
+}
+
+// ── Review prompt for self-critique ───────────────────────────────────────
+
+const REVIEW_PROMPT = `You are reviewing CSS operations that were just generated for a website redesign.
+The ops were applied but the result doesn't look award-winning yet.
+
+Review the ops and return an IMPROVED version. Return ONLY a JSON object with an "ops" array.
+Focus on:
+- Missing elements (did we forget inputs, tables, code blocks, images, nav, footer?)
+- Color consistency (are all backgrounds the same dark shade? any missed white/light areas?)
+- Typography (is there proper hierarchy? letter-spacing on headings?)
+- Interactions (hover states on links, buttons, cards?)
+- Spacing (generous padding, proper margins?)
+- Polish (border-radius, subtle shadows, transitions?)
+
+Return the COMPLETE improved ops array (not just additions — the full replacement set).`;
+
+// ── LLM call ──────────────────────────────────────────────────────────────
+
+async function llmCall(messages, model, maxTokens = 4096) {
   const payload = {
-    model: MODEL,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userMessage },
-    ],
+    model,
+    messages,
     temperature: 0.3,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
   };
 
   const controller = new AbortController();
@@ -212,7 +236,7 @@ async function callOpenClaw(prompt, origin) {
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => '');
-      throw new Error(`OpenClaw HTTP ${resp.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`LLM HTTP ${resp.status}: ${errText.slice(0, 200)}`);
     }
 
     const data = await resp.json();
@@ -228,6 +252,54 @@ async function callOpenClaw(prompt, origin) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// ── Main orchestrator: generate + optional review ─────────────────────────
+
+async function callOpenClaw(prompt, origin) {
+  const model = selectModel(prompt);
+  const isPremium = model === MODEL_PREMIUM;
+  const userMessage = origin
+    ? `Website: ${origin}\n\nRequest: ${prompt}`
+    : prompt;
+
+  log('info', 'LLM call', { model, isPremium, origin });
+
+  // Step 1: Generate ops
+  const ops = await llmCall(
+    [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userMessage },
+    ],
+    model,
+  );
+
+  // Step 2: Self-review (only for premium/complex requests with 10+ ops)
+  // Uses Sonnet for speed — review is faster/cheaper than generation
+  if (isPremium && ops.length >= 10) {
+    log('info', 'Running self-review', { initialOps: ops.length });
+    try {
+      const opsJSON = JSON.stringify({ ops });
+      const reviewedOps = await llmCall(
+        [
+          { role: 'system', content: REVIEW_PROMPT },
+          { role: 'user', content: `Website: ${origin}\n\nOriginal request: ${prompt}\n\nGenerated ops:\n${opsJSON}\n\nReturn ONLY the improved JSON ops object. No markdown fences.` },
+        ],
+        MODEL_FAST,
+        8192,
+      );
+      if (reviewedOps.length >= ops.length) {
+        log('info', 'Review improved ops', { before: ops.length, after: reviewedOps.length });
+        return reviewedOps;
+      }
+      // If review produced fewer ops, keep original (review degraded quality)
+      log('warn', 'Review produced fewer ops, keeping original', { before: ops.length, after: reviewedOps.length });
+    } catch (err) {
+      log('warn', 'Review failed, using original ops', { error: err.message });
+    }
+  }
+
+  return ops;
 }
 
 // ── HTTP server ──────────────────────────────────────────────────────────
@@ -249,7 +321,8 @@ const server = http.createServer(async (req, res) => {
       status: 'ok',
       uptime: process.uptime() | 0,
       requests: requestCount,
-      model: MODEL,
+      modelFast: MODEL_FAST,
+      modelPremium: MODEL_PREMIUM,
     }, req);
   }
 
@@ -258,7 +331,8 @@ const server = http.createServer(async (req, res) => {
     return jsonResponse(res, 200, {
       uptime: process.uptime() | 0,
       requests: requestCount,
-      model: MODEL,
+      modelFast: MODEL_FAST,
+      modelPremium: MODEL_PREMIUM,
       memoryMB: (process.memoryUsage().rss / 1024 / 1024).toFixed(1),
       rateLimits: rateLimits.size,
     }, req);
@@ -314,7 +388,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  log('info', 'AI proxy started', { port: PORT, model: MODEL, openclaw: OPENCLAW_URL });
+  log('info', 'AI proxy started', { port: PORT, modelFast: MODEL_FAST, modelPremium: MODEL_PREMIUM, openclaw: OPENCLAW_URL });
 });
 
 // Graceful shutdown
