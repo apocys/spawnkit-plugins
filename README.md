@@ -27,15 +27,40 @@ AI-driven CSS and DOM manipulation via a chat interface. Describe style changes 
 | **Import** | Upload a JSON file to merge configs into storage |
 | **Erase** | Delete saved config for the current origin |
 
-## AI Endpoint
+## AI Proxy Setup
 
-The extension POSTs to `http://localhost:18789/ai/css-editor` with:
+The extension talks to a local AI proxy server that forwards prompts to the OpenClaw gateway for real LLM-backed CSS/DOM editing.
+
+### Prerequisites
+
+- **Node.js 18+** (uses native `fetch`)
+- **OpenClaw gateway** running on `http://localhost:18789`
+
+### Start the proxy
+
+```bash
+npm start
+# or: node ai-proxy.js
+```
+
+The proxy listens on `http://localhost:3460` and forwards requests to OpenClaw at `http://localhost:18789/v1/chat/completions` using model `claudemax/claude-sonnet-4-20250514`.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/ai/css-editor` | Main endpoint — accepts `{ prompt, origin }`, returns `{ ops }` |
+| GET | `/health` | Health check — returns `{ status: "ok" }` |
+
+### Request / Response
+
+POST `/ai/css-editor`:
 
 ```json
 { "prompt": "user message", "origin": "https://example.com" }
 ```
 
-Expected response:
+Response:
 
 ```json
 {
@@ -46,7 +71,9 @@ Expected response:
 }
 ```
 
-If the endpoint is unreachable, the extension simulates ops based on keyword matching (dark, hide, font, border).
+On LLM failure the proxy returns `{ "ops": [], "error": "description" }`.
+
+If the proxy itself is unreachable, the extension falls back to simulated ops based on keyword matching (dark, hide, font, border).
 
 ## Message Protocol
 
@@ -68,6 +95,8 @@ If the endpoint is unreachable, the extension simulates ops based on keyword mat
 
 ```
 spawnkit-plugins/
+├── ai-proxy.js     — Node.js proxy server (OpenClaw gateway bridge)
+├── package.json    — npm config & start script
 ├── manifest.json   — MV3 manifest
 ├── popup.html      — Chat UI
 ├── popup.js        — Popup controller

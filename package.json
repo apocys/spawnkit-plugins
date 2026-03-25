@@ -1,0 +1,12 @@
+{
+  "name": "spawnkit-plugins",
+  "version": "1.0.0",
+  "description": "AI proxy server for SpawnKit Plugins Chrome Extension",
+  "private": true,
+  "scripts": {
+    "start": "node ai-proxy.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

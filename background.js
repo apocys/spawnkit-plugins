@@ -4,7 +4,7 @@
 
 importScripts('storage.js');
 
-const AI_ENDPOINT = 'http://localhost:18789/ai/css-editor';
+const AI_ENDPOINT = 'http://localhost:3460/ai/css-editor';
 
 // ── AI call with fallback simulation ────────────────────────────────────
 
