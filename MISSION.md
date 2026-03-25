@@ -15,10 +15,10 @@
 | T5 | Auto-apply reliability (tab ready detection) | ✅ DONE | contentReady message, retry with script injection, 300ms delay |
 | T6 | Popup UI polish (loading states, error display, undo) | ✅ DONE | Dark theme, loading dots, op type breakdown, empty state |
 | T7 | Undo support | ✅ DONE | Hide-based undo (not remove), full undoAll via content script |
-| T8 | Visual element picker | 🔲 TODO | |
-| T9 | Preset library (dark mode, reader mode, hide ads) | 🔲 TODO | |
-| T10 | Landing page v2 (demo, install guide, screenshots) | 🔲 TODO | |
-| T11 | README + Chrome Web Store prep | 🔲 TODO | |
+| T8 | Visual element picker | ✅ DONE | picker.js + 🎯 button in popup, smart selector gen |
+| T9 | Preset library (5 presets) | ✅ DONE | Dark Mode, Reader, Hide Ads, Focus, Compact |
+| T10 | Landing page v2 | ✅ DONE | Hero, demo terminal, features, install guide, CTA |
+| T11 | README + docs | ✅ DONE | Full feature list, API docs, architecture diagram |
 
 ## Completed Log
 - **T1** (22:20) — AI proxy returning 401. Root cause: no Authorization header. Fixed by adding Bearer token. Tested: HN dark mode → 11 context-aware ops returned. ✅
