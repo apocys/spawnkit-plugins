@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpawnKit Plugins</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: #e0e0e0;
+      background: #1a1a2e;
+    }
+    header {
+      padding: 10px 12px;
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 14px; font-weight: 600; color: #e94560; }
+    #site-label { font-size: 11px; color: #888; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #chat-log {
+      height: 240px;
+      overflow-y: auto;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .msg {
+      padding: 6px 10px;
+      border-radius: 6px;
+      max-width: 90%;
+      word-wrap: break-word;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .msg.user { background: #0f3460; align-self: flex-end; }
+    .msg.ai { background: #16213e; align-self: flex-start; border: 1px solid #0f3460; }
+    .msg.error { background: #3d1111; color: #ff6b6b; align-self: center; font-size: 11px; }
+
+    #input-area {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      border-top: 1px solid #0f3460;
+      background: #16213e;
+    }
+    #prompt-input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-size: 13px;
+      outline: none;
+      resize: none;
+    }
+    #prompt-input:focus { border-color: #e94560; }
+    #send-btn {
+      padding: 8px 14px;
+      background: #e94560;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    #send-btn:hover { background: #c73650; }
+    #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #actions {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px;
+      border-top: 1px solid #0f3460;
+      flex-wrap: wrap;
+    }
+    #actions button {
+      flex: 1;
+      min-width: 60px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      background: #16213e;
+      color: #e0e0e0;
+      cursor: pointer;
+    }
+    #actions button:hover { background: #0f3460; }
+    #actions button.danger { border-color: #e94560; color: #e94560; }
+    #actions button.danger:hover { background: #3d1111; }
+
+    #status {
+      padding: 4px 12px 8px;
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SpawnKit Plugins</h1>
+    <span id="site-label">—</span>
+  </header>
+
+  <div id="chat-log"></div>
+
+  <div id="input-area">
+    <textarea id="prompt-input" rows="1" placeholder="Describe a style change…"></textarea>
+    <button id="send-btn">Send</button>
+  </div>
+
+  <div id="actions">
+    <button id="btn-save">Save</button>
+    <button id="btn-load">Load</button>
+    <button id="btn-export">Export</button>
+    <button id="btn-import">Import</button>
+    <button id="btn-erase" class="danger">Erase</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
