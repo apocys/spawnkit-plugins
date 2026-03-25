@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpawnKit Plugins — AI-Powered CSS Editor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .container { max-width: 640px; padding: 3rem 2rem; text-align: center; }
+  h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .tagline { font-size: 1.1rem; color: #888; margin-bottom: 2rem; }
+  .features { text-align: left; margin: 2rem 0; }
+  .feature { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+  .feature-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .feature h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; color: #ccc; }
+  .feature p { font-size: 0.85rem; color: #777; }
+  .cta { display: inline-block; margin-top: 2rem; padding: 0.8rem 2rem; border-radius: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; font-weight: 600; font-size: 1rem; transition: opacity 0.2s; }
+  .cta:hover { opacity: 0.9; }
+  .badge { display: inline-block; margin-top: 1rem; padding: 0.3rem 0.8rem; border-radius: 999px; background: rgba(102,126,234,0.15); color: #667eea; font-size: 0.75rem; font-weight: 600; }
+  footer { margin-top: 3rem; font-size: 0.8rem; color: #444; }
+  footer a { color: #667eea; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧩 SpawnKit Plugins</h1>
+  <p class="tagline">Describe style changes in plain English. The AI applies them instantly.</p>
+  <span class="badge">Chrome Extension · MV3</span>
+  
+  <div class="features">
+    <div class="feature">
+      <span class="feature-icon">🎨</span>
+      <div><h3>Natural Language CSS</h3><p>Type "make the background dark" or "hide the sidebar" — AI generates and applies the CSS.</p></div>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">💾</span>
+      <div><h3>Persistent Per-Site</h3><p>Save your customizations per website. They reload automatically on every visit.</p></div>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">📦</span>
+      <div><h3>Export & Share</h3><p>Export your configs as JSON. Import others' configs. Build a library of site themes.</p></div>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">🤖</span>
+      <div><h3>LLM-Powered</h3><p>Backed by Claude Sonnet for precise, context-aware CSS and DOM operations.</p></div>
+    </div>
+  </div>
+
+  <a href="https://github.com/apocys/spawnkit-plugins" class="cta">Get the Extension →</a>
+  
+  <footer>
+    <p>Built by <a href="https://spawnkit.ai">SpawnKit</a></p>
+  </footer>
+</div>
+</body>
+</html>
