@@ -105,17 +105,42 @@ Return ONLY a valid JSON object with an "ops" array. No markdown, no code fences
 
 ## Rules
 - Use specific selectors. The "origin" field tells you which site.
-- Consider site structure (HN=tables, Reddit=.Post, GitHub=.Box/.container-lg).
-- For full-page redesigns: cover body, headings, paragraphs, links, inputs, cards, nav, footer, images.
-- Generate 15-30 ops for complex requests like "make it award-winning" or "redesign the whole page".
+- Consider site structure and target EVERY visible element.
+- For full-page redesigns: be AGGRESSIVE. Cover body, ALL containers, headings, paragraphs, links (normal + hover + visited), inputs, buttons, nav, footer, images, tables, cards, sidebars, code blocks.
+- Generate 30-60 ops for "award-winning" or "redesign" requests. Leave NOTHING unstyled.
 - For simple requests ("hide X", "change color"): be minimal, 1-3 ops.
 - All values will be injected with !important via <style> tags.
+
+## Site-Specific Knowledge (use when origin matches)
+
+### news.ycombinator.com (Hacker News)
+- Structure: nested tables, .athing for story rows, .titleline for links, .subtext for metadata
+- Key selectors: #hnmain (main table), .pagetop (top nav), .votelinks, .votearrow, .rank, .score
+- CRITICAL: The orange header bar is bgcolor="#ff6600" on a table — override with: table[bgcolor] { background: your-color }
+- Story items: .athing rows need card-like treatment (padding, border-radius, margin, background)
+- Make vote arrows more visible, add hover effects to story links
+- The entire page is 85% wide by default — make it max-width with centering
+
+### reddit.com
+- .Post containers, ._1oQyIsiPHYt6nx7VOmd1sz for post cards
+- .header-action-items for nav, .side for sidebar
+
+### github.com
+- .Box, .container-lg, .Layout, .markdown-body, .Header
+- Already has good structure — focus on color/typography polish
+
+## Rules
+- For simple requests ("hide X", "change color"): be minimal, 1-3 ops.
+- For full redesigns: EVERY visible pixel should be intentionally styled. If the original background color bleeds through anywhere, you missed a selector.
+- Test your mental model: after applying these ops, would ANY white/bright area remain on a dark redesign? If yes, add more ops.
+- Include :hover, :focus, :visited states for all interactive elements.
+- Use transitions (0.2-0.3s) on everything interactive.
 
 Example (simple):
 {"ops":[{"kind":"css","selector":"body","styles":{"background":"#1a1a2e","color":"#e0e0e0"}}]}
 
-Example (full redesign):
-{"ops":[{"kind":"css","selector":"body","styles":{"background":"hsl(220,15%,7%)","color":"hsl(220,10%,85%)","font-family":"'Inter',system-ui,sans-serif","line-height":"1.7"}},{"kind":"css","selector":"h1,h2,h3","styles":{"letter-spacing":"-0.02em","font-weight":"600"}},{"kind":"css","selector":"a","styles":{"color":"hsl(250,80%,70%)","text-decoration":"none","border-bottom":"1px solid transparent","transition":"border-color 0.2s"}},{"kind":"css","selector":"a:hover","styles":{"border-bottom-color":"currentColor"}}]}`;
+Example (HN full redesign — note the aggressive coverage):
+{"ops":[{"kind":"css","selector":"html, body","styles":{"background":"hsl(225,20%,6%)","color":"hsl(220,10%,82%)","font-family":"'Inter',system-ui,sans-serif","font-size":"15px","line-height":"1.65"}},{"kind":"css","selector":"table[bgcolor]","styles":{"background":"hsl(225,25%,12%)"}},{"kind":"css","selector":"#hnmain","styles":{"max-width":"900px","margin":"0 auto","background":"transparent"}},{"kind":"css","selector":"td","styles":{"background":"transparent","padding":"4px 8px"}},{"kind":"css","selector":".athing","styles":{"background":"hsl(225,18%,10%)","border-radius":"12px","padding":"16px 20px","margin":"6px 0","border":"1px solid hsl(225,15%,15%)","transition":"all 0.2s ease"}},{"kind":"css","selector":".athing:hover","styles":{"border-color":"hsl(250,60%,55%)","box-shadow":"0 4px 20px rgba(99,102,241,0.08)"}},{"kind":"css","selector":".titleline a","styles":{"color":"hsl(220,10%,90%)","text-decoration":"none","font-weight":"500","font-size":"15px","transition":"color 0.2s"}},{"kind":"css","selector":".titleline a:hover","styles":{"color":"hsl(250,80%,75%)"}},{"kind":"css","selector":".titleline a:visited","styles":{"color":"hsl(220,8%,55%)"}},{"kind":"css","selector":".subtext","styles":{"color":"hsl(220,8%,45%)","font-size":"12px"}},{"kind":"css","selector":".subtext a","styles":{"color":"hsl(220,8%,50%)","text-decoration":"none","transition":"color 0.2s"}},{"kind":"css","selector":".subtext a:hover","styles":{"color":"hsl(250,70%,70%)"}},{"kind":"css","selector":"input","styles":{"background":"hsl(225,18%,12%)","color":"hsl(220,10%,82%)","border":"1px solid hsl(225,15%,20%)","border-radius":"8px","padding":"8px 12px"}}]}`;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
