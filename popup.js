@@ -37,10 +37,59 @@ function setStatus(msg, type = '') {
   }, 4000);
 }
 
+const loadingFill = document.getElementById('loading-fill');
+const loadingText = document.getElementById('loading-text');
+const loadingTimer = document.getElementById('loading-timer');
+let loadingInterval = null;
+let loadingStart = 0;
+
+const LOADING_PHASES = [
+  { at: 0,  text: '🔍 Analyzing page structure...',    pct: 5 },
+  { at: 2,  text: '🧠 AI generating CSS ops...',       pct: 20 },
+  { at: 5,  text: '🎨 Designing responsive styles...',  pct: 40 },
+  { at: 10, text: '✨ Polishing interactions...',       pct: 65 },
+  { at: 15, text: '🔧 Finalizing operations...',        pct: 80 },
+  { at: 25, text: '⏳ Almost there...',                 pct: 90 },
+  { at: 45, text: '🐢 Complex redesign — hang tight...', pct: 95 },
+];
+
 function setLoading(on) {
   loading.classList.toggle('active', on);
   sendBtn.disabled = on;
   promptInput.disabled = on;
+
+  if (on) {
+    loadingStart = Date.now();
+    loadingFill.style.width = '2%';
+    loadingText.textContent = LOADING_PHASES[0].text;
+    loadingTimer.textContent = '0.0s';
+
+    loadingInterval = setInterval(() => {
+      const elapsed = (Date.now() - loadingStart) / 1000;
+      loadingTimer.textContent = elapsed.toFixed(1) + 's';
+
+      // Find the latest matching phase
+      let phase = LOADING_PHASES[0];
+      for (const p of LOADING_PHASES) {
+        if (elapsed >= p.at) phase = p;
+      }
+      loadingText.textContent = phase.text;
+      loadingFill.style.width = phase.pct + '%';
+    }, 200);
+  } else {
+    if (loadingInterval) {
+      clearInterval(loadingInterval);
+      loadingInterval = null;
+    }
+    // Flash to 100% briefly
+    loadingFill.style.width = '100%';
+    const elapsed = ((Date.now() - loadingStart) / 1000).toFixed(1);
+    loadingTimer.textContent = elapsed + 's';
+    loadingText.textContent = '✅ Done';
+    setTimeout(() => {
+      loadingFill.style.width = '0%';
+    }, 600);
+  }
 }
 
 async function getActiveTabOrigin() {
@@ -81,15 +130,16 @@ async function sendPrompt() {
     if (domOps) detail.push(`${domOps} DOM`);
     const detailStr = detail.length ? ` (${detail.join(', ')})` : '';
 
+    const elapsed = ((Date.now() - loadingStart) / 1000).toFixed(1);
     const cls = response.offline ? 'ai offline' : 'ai success';
     const prefix = response.offline ? '⚡ Offline: ' : '✅ ';
     addMessage(
-      `${prefix}Applied <span class="op-count">${ops.length}</span> op${ops.length !== 1 ? 's' : ''}${detailStr}`,
+      `${prefix}Applied <span class="op-count">${ops.length}</span> op${ops.length !== 1 ? 's' : ''}${detailStr} in ${elapsed}s`,
       cls,
       response.error ? `⚠️ ${response.error}` : ''
     );
 
-    setStatus(`${ops.length} ops applied`, 'success');
+    setStatus(`${ops.length} ops · ${elapsed}s`, 'success');
   } catch (err) {
     addMessage(`Connection error: ${err.message}`, 'error');
     setStatus('Error', 'error');
