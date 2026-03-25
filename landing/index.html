@@ -3,55 +3,326 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SpawnKit Plugins — AI-Powered CSS Editor</title>
+<title>SpawnKit Plugins — AI CSS Editor for Chrome</title>
+<meta name="description" content="Describe style changes in plain English. AI applies them instantly to any website.">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .container { max-width: 640px; padding: 3rem 2rem; text-align: center; }
-  h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .tagline { font-size: 1.1rem; color: #888; margin-bottom: 2rem; }
-  .features { text-align: left; margin: 2rem 0; }
-  .feature { display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
-  .feature-icon { font-size: 1.3rem; flex-shrink: 0; }
-  .feature h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; color: #ccc; }
-  .feature p { font-size: 0.85rem; color: #777; }
-  .cta { display: inline-block; margin-top: 2rem; padding: 0.8rem 2rem; border-radius: 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; font-weight: 600; font-size: 1rem; transition: opacity 0.2s; }
-  .cta:hover { opacity: 0.9; }
-  .badge { display: inline-block; margin-top: 1rem; padding: 0.3rem 0.8rem; border-radius: 999px; background: rgba(102,126,234,0.15); color: #667eea; font-size: 0.75rem; font-weight: 600; }
-  footer { margin-top: 3rem; font-size: 0.8rem; color: #444; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0f; color: #d4d4d8; min-height: 100vh; overflow-x: hidden; }
+
+  /* ── Hero ─────────────────────────────── */
+  .hero {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 4rem 2rem 2rem;
+    text-align: center;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(102,126,234,0.12);
+    color: #818cf8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 1.5rem;
+  }
+  h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #c7d2fe 0%, #818cf8 40%, #a78bfa 70%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    font-size: 1.2rem;
+    color: #71717a;
+    max-width: 500px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+  }
+
+  /* ── Demo ─────────────────────────────── */
+  .demo {
+    max-width: 700px;
+    margin: 0 auto 3rem;
+    background: #18181b;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .demo-header {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .demo-dot.r { background: #ef4444; }
+  .demo-dot.y { background: #eab308; }
+  .demo-dot.g { background: #22c55e; }
+  .demo-body {
+    padding: 20px 24px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: #a1a1aa;
+  }
+  .demo-body .prompt {
+    color: #818cf8;
+    margin-bottom: 4px;
+  }
+  .demo-body .response {
+    color: #86efac;
+    padding-left: 16px;
+    border-left: 2px solid rgba(134,239,172,0.2);
+    margin-bottom: 16px;
+  }
+
+  /* ── Features ────────────────────────── */
+  .features {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 2rem 3rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .feature {
+    padding: 20px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: border-color 0.3s;
+  }
+  .feature:hover { border-color: rgba(102,126,234,0.3); }
+  .feature-icon { font-size: 1.5rem; margin-bottom: 10px; }
+  .feature h3 { font-size: 0.95rem; font-weight: 600; color: #e4e4e7; margin-bottom: 6px; }
+  .feature p { font-size: 0.8rem; color: #71717a; line-height: 1.5; }
+
+  /* ── Install ─────────────────────────── */
+  .install {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+  .install h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #e4e4e7;
+    margin-bottom: 2rem;
+  }
+  .steps {
+    text-align: left;
+    counter-reset: step;
+  }
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-text { flex: 1; }
+  .step-text h4 { font-size: 0.9rem; color: #e4e4e7; margin-bottom: 4px; }
+  .step-text p { font-size: 0.8rem; color: #71717a; line-height: 1.5; }
+  .step-text code {
+    background: rgba(255,255,255,0.06);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #a5b4fc;
+  }
+
+  /* ── Presets preview ─────────────────── */
+  .presets-preview {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 2rem 3rem;
+  }
+  .presets-preview h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #e4e4e7;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  .preset-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .preset-chip {
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #a1a1aa;
+    font-size: 0.85rem;
+  }
+
+  /* ── CTA ──────────────────────────────── */
+  .cta-section {
+    text-align: center;
+    padding: 2rem 2rem 4rem;
+  }
+  .cta {
+    display: inline-block;
+    padding: 14px 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .cta:hover { opacity: 0.9; transform: translateY(-1px); }
+  .cta-sub {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: #52525b;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.8rem;
+    color: #3f3f46;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
   footer a { color: #667eea; text-decoration: none; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🧩 SpawnKit Plugins</h1>
-  <p class="tagline">Describe style changes in plain English. The AI applies them instantly.</p>
-  <span class="badge">Chrome Extension · MV3</span>
-  
-  <div class="features">
-    <div class="feature">
-      <span class="feature-icon">🎨</span>
-      <div><h3>Natural Language CSS</h3><p>Type "make the background dark" or "hide the sidebar" — AI generates and applies the CSS.</p></div>
+
+<div class="hero">
+  <span class="badge">CHROME EXTENSION · v1.1.0</span>
+  <h1>Restyle any website with AI</h1>
+  <p class="subtitle">Describe style changes in plain English. The AI generates and applies CSS instantly. Save your customizations per site.</p>
+</div>
+
+<div class="demo">
+  <div class="demo-header">
+    <div class="demo-dot r"></div>
+    <div class="demo-dot y"></div>
+    <div class="demo-dot g"></div>
+  </div>
+  <div class="demo-body">
+    <div class="prompt">you → "make it dark mode"</div>
+    <div class="response">✅ Applied 11 ops (11 CSS) — background, text, links, tables, inputs</div>
+    <div class="prompt">you → "hide the sidebar"</div>
+    <div class="response">✅ Applied 1 op (1 CSS) — aside, .sidebar { display: none }</div>
+    <div class="prompt">you → "bigger font, more spacing"</div>
+    <div class="response">✅ Applied 3 ops (3 CSS) — body font-size, line-height, paragraph margins</div>
+  </div>
+</div>
+
+<div class="features">
+  <div class="feature">
+    <div class="feature-icon">🎨</div>
+    <h3>Natural Language CSS</h3>
+    <p>Type what you want in plain English. AI generates precise, site-aware CSS selectors and applies them.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">🎯</div>
+    <h3>Visual Element Picker</h3>
+    <p>Click any element on the page to select it. The extension generates the optimal CSS selector automatically.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">⚡</div>
+    <h3>Built-in Presets</h3>
+    <p>One-click Dark Mode, Reader Mode, Hide Ads, Focus Mode, and Compact layouts. Combine them freely.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">💾</div>
+    <h3>Save Per Site</h3>
+    <p>Your customizations persist per website. They auto-apply on every visit via Chrome sync storage.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">↩️</div>
+    <h3>Undo & Restore</h3>
+    <p>One-click undo reverts all changes. Non-destructive — elements are hidden, not deleted.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">📦</div>
+    <h3>Export & Share</h3>
+    <p>Export your site configs as JSON. Import others' configs. Build a library of custom themes.</p>
+  </div>
+</div>
+
+<div class="presets-preview">
+  <h2>Built-in Presets</h2>
+  <div class="preset-chips">
+    <span class="preset-chip">🌙 Dark Mode</span>
+    <span class="preset-chip">📖 Reader Mode</span>
+    <span class="preset-chip">🚫 Hide Ads</span>
+    <span class="preset-chip">🔍 Focus Mode</span>
+    <span class="preset-chip">📏 Compact</span>
+  </div>
+</div>
+
+<div class="install" id="install">
+  <h2>Install in 60 seconds</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <h4>Clone the repo</h4>
+        <p><code>git clone https://github.com/apocys/spawnkit-plugins.git</code></p>
+      </div>
     </div>
-    <div class="feature">
-      <span class="feature-icon">💾</span>
-      <div><h3>Persistent Per-Site</h3><p>Save your customizations per website. They reload automatically on every visit.</p></div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <h4>Open Chrome Extensions</h4>
+        <p>Navigate to <code>chrome://extensions</code> and enable <strong>Developer mode</strong></p>
+      </div>
     </div>
-    <div class="feature">
-      <span class="feature-icon">📦</span>
-      <div><h3>Export & Share</h3><p>Export your configs as JSON. Import others' configs. Build a library of site themes.</p></div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <h4>Load unpacked</h4>
+        <p>Click <strong>Load unpacked</strong> and select the <code>spawnkit-plugins</code> folder</p>
+      </div>
     </div>
-    <div class="feature">
-      <span class="feature-icon">🤖</span>
-      <div><h3>LLM-Powered</h3><p>Backed by Claude Sonnet for precise, context-aware CSS and DOM operations.</p></div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">
+        <h4>Start the AI proxy</h4>
+        <p><code>cd spawnkit-plugins && npm start</code> — requires Node.js 18+ and OpenClaw gateway</p>
+      </div>
     </div>
   </div>
-
-  <a href="https://github.com/apocys/spawnkit-plugins" class="cta">Get the Extension →</a>
-  
-  <footer>
-    <p>Built by <a href="https://spawnkit.ai">SpawnKit</a></p>
-  </footer>
 </div>
+
+<div class="cta-section">
+  <a href="https://github.com/apocys/spawnkit-plugins" class="cta">Get SpawnKit Plugins →</a>
+  <span class="cta-sub">Free · Open Source · Chrome MV3</span>
+</div>
+
+<footer>
+  <p>Built by <a href="https://spawnkit.ai">SpawnKit</a> · Powered by Claude Sonnet</p>
+</footer>
+
 </body>
 </html>

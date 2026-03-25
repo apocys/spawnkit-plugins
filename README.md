@@ -1,116 +1,100 @@
-# SpawnKit Plugins — Chrome Extension (MV3)
+# 🧩 SpawnKit Plugins — AI CSS Editor for Chrome
 
-AI-driven CSS and DOM manipulation via a chat interface. Describe style changes in natural language, and the extension applies them to the current page.
+Describe style changes in plain English. The AI generates and applies CSS instantly to any website.
+
+**[Live Site](https://plugins.spawnkit.ai)** · **[Install Guide](#install)**
+
+## Features
+
+- **🎨 Natural Language CSS** — Type "make it dark" or "hide the sidebar" and AI generates precise CSS
+- **🎯 Visual Element Picker** — Click any element to auto-generate its CSS selector
+- **⚡ Built-in Presets** — One-click Dark Mode, Reader Mode, Hide Ads, Focus Mode, Compact
+- **💾 Per-Site Persistence** — Configs saved via Chrome sync, auto-apply on every visit
+- **↩️ Undo** — One-click undo reverts all changes (non-destructive)
+- **📦 Export/Import** — Share your site configs as JSON
 
 ## Install
 
-1. Clone or copy the `spawnkit-plugins/` folder
-2. Open Chrome → `chrome://extensions`
-3. Enable **Developer mode** (top-right toggle)
-4. Click **Load unpacked** → select the `spawnkit-plugins/` folder
-5. The SpawnKit icon appears in the toolbar
+1. Clone: `git clone https://github.com/apocys/spawnkit-plugins.git`
+2. Open `chrome://extensions` → enable **Developer mode**
+3. Click **Load unpacked** → select `spawnkit-plugins/` folder
+4. Start AI proxy: `npm start` (requires Node.js 18+ and [OpenClaw](https://github.com/openclaw/openclaw) gateway)
 
 ## Usage
 
 1. Navigate to any website
-2. Click the SpawnKit icon to open the popup
-3. Type a prompt (e.g. *"make the background dark"*, *"hide .sidebar"*, *"change font to serif"*)
-4. The extension sends the prompt to the AI endpoint and applies returned ops to the page
+2. Click the 🧩 icon in your toolbar
+3. Type a prompt (e.g. *"make the background dark"*, *"change font to serif"*)
+4. Or use the **🎯 Pick** button to click an element, then describe changes
+5. Or apply a **Preset** (Dark Mode, Reader Mode, etc.)
 
-### Buttons
+### Action Buttons
 
-| Button   | Action |
-|----------|--------|
-| **Save** | Persist current ops to `chrome.storage.sync` for this origin |
-| **Load** | Restore and re-apply saved ops for this origin |
-| **Export** | Download all saved configs as a JSON file |
-| **Import** | Upload a JSON file to merge configs into storage |
-| **Erase** | Delete saved config for the current origin |
+| Button | Action |
+|--------|--------|
+| **🎯 Pick** | Click-to-select an element on the page |
+| **↩ Undo** | Revert all changes on the current page |
+| **💾 Save** | Persist ops for this site (auto-applies on revisit) |
+| **📂 Load** | Restore and re-apply saved ops |
+| **📦 Export** | Download all site configs as JSON |
+| **📥 Import** | Upload a JSON file to merge configs |
+| **🗑 Erase** | Delete saved config for current site |
 
-## AI Proxy Setup
+### Presets
 
-The extension talks to a local AI proxy server that forwards prompts to the OpenClaw gateway for real LLM-backed CSS/DOM editing.
+| Preset | Effect |
+|--------|--------|
+| 🌙 Dark Mode | Full dark theme — body, containers, inputs, links, tables |
+| 📖 Reader Mode | 700px centered, serif font, hide nav/sidebar/footer |
+| 🚫 Hide Ads | Remove common ad/banner/cookie elements |
+| 🔍 Focus Mode | Blur distractions, highlight main content |
+| 📏 Compact | Reduce spacing and font size globally |
 
-### Prerequisites
+## AI Proxy
 
-- **Node.js 18+** (uses native `fetch`)
-- **OpenClaw gateway** running on `http://localhost:18789`
-
-### Start the proxy
+The extension talks to a local proxy (`ai-proxy.js`) that forwards prompts to the OpenClaw gateway.
 
 ```bash
 npm start
-# or: node ai-proxy.js
+# Proxy listens on http://localhost:3460
 ```
-
-The proxy listens on `http://localhost:3460` and forwards requests to OpenClaw at `http://localhost:18789/v1/chat/completions` using model `claudemax/claude-sonnet-4-20250514`.
 
 ### Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/ai/css-editor` | Main endpoint — accepts `{ prompt, origin }`, returns `{ ops }` |
-| GET | `/health` | Health check — returns `{ status: "ok" }` |
+| POST | `/ai/css-editor` | Main endpoint — `{ prompt, origin }` → `{ ops }` |
+| GET | `/health` | Health check + uptime + request count |
+| GET | `/stats` | Memory usage, rate limit stats |
 
-### Request / Response
+### Rate Limits
 
-POST `/ai/css-editor`:
+- 20 requests per origin per minute
+- 2KB max prompt length
+- 30s request timeout
 
-```json
-{ "prompt": "user message", "origin": "https://example.com" }
-```
-
-Response:
-
-```json
-{
-  "ops": [
-    { "kind": "css", "selector": "body", "styles": { "background": "#000" } },
-    { "kind": "dom", "selector": ".ad", "action": "remove", "html": "" }
-  ]
-}
-```
-
-On LLM failure the proxy returns `{ "ops": [], "error": "description" }`.
-
-If the proxy itself is unreachable, the extension falls back to simulated ops based on keyword matching (dark, hide, font, border).
-
-## Message Protocol
+## Architecture
 
 ```
-{ type: 'apply', ops: [
-    { kind: 'css', selector, styles: { prop: value, ... } },
-    { kind: 'dom', selector, action: 'replace'|'append'|'remove', html }
-]}
+Chrome Extension (MV3)
+  ├── popup.html/js     — Chat UI + presets + picker trigger
+  ├── background.js     — Service worker: routing, AI calls, storage
+  ├── content.js        — Applies CSS/DOM ops to pages
+  ├── picker.js         — Visual element picker overlay
+  ├── presets.js        — Built-in preset library
+  └── storage.js        — Per-origin config persistence (chrome.storage.sync)
+
+AI Proxy (Node.js)
+  └── ai-proxy.js       — localhost:3460 → OpenClaw gateway → Claude Sonnet
 ```
 
-## Persistence
+## Tech Stack
 
-- Configs are stored per origin (`protocol+host`) in `chrome.storage.sync`
-- On save, CSS ops are coalesced per selector; DOM ops are deduped by selector+action
-- On import, the more recent config wins (by `updatedAt` timestamp); ops are merged for older entries
-- Saved configs auto-apply when navigating to a matching origin
+- Chrome Extension Manifest V3
+- Vanilla JS (no framework, no build step)
+- OpenClaw gateway + Claude Sonnet for AI
+- Chrome Storage Sync API for persistence
 
-## Files
+## License
 
-```
-spawnkit-plugins/
-├── ai-proxy.js     — Node.js proxy server (OpenClaw gateway bridge)
-├── package.json    — npm config & start script
-├── manifest.json   — MV3 manifest
-├── popup.html      — Chat UI
-├── popup.js        — Popup controller
-├── background.js   — Service worker (routing, AI, persistence)
-├── content.js      — Applies CSS/DOM ops to pages
-├── storage.js      — Storage helpers (get/save/load/erase/export/import)
-└── README.md       — This file
-```
-
-## Dev / Test
-
-1. Load the extension as described above
-2. Open any page, click the extension icon
-3. Type "make background dark" → page background changes
-4. Click **Save** → reload the page → ops re-apply automatically
-5. Click **Export** → download JSON → click **Erase** → click **Import** → select the JSON
-6. Open DevTools console to see `[SpawnKit]` warnings if any op fails
+MIT
