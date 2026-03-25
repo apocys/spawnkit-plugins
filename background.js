@@ -4,6 +4,7 @@
 // conversation history per origin, better error reporting.
 
 importScripts('storage.js');
+importScripts('presets.js');
 
 const AI_ENDPOINT = 'http://localhost:3460/ai/css-editor';
 
@@ -91,6 +92,7 @@ async function applyOpsToActiveTab(ops) {
 // ── Accumulated ops for the current session (per-origin) ────────────────
 
 const sessionOps = {};  // origin → ops[]
+let pickerResult = null; // last picker selection
 
 // ── Message handler ─────────────────────────────────────────────────────
 
@@ -179,6 +181,56 @@ async function handleMessage(msg, sender) {
 
       case 'getSessionOps': {
         return { ok: true, ops: sessionOps[msg.origin] || [] };
+      }
+
+      case 'startPicker': {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id) return { ok: false, error: 'No active tab' };
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['picker.js']
+          });
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: err.message };
+        }
+      }
+
+      case 'pickerResult': {
+        // Forward to popup — store temporarily
+        pickerResult = { selector: msg.selector, tag: msg.tag, dims: msg.dims };
+        return { ok: true };
+      }
+
+      case 'pickerCancelled': {
+        pickerResult = null;
+        return { ok: true };
+      }
+
+      case 'getPickerResult': {
+        const result = pickerResult;
+        pickerResult = null;
+        return { ok: true, result };
+      }
+
+      case 'getPresets': {
+        const list = Object.entries(self.PRESETS || {}).map(([id, p]) => ({
+          id, name: p.name, description: p.description, opsCount: p.ops.length,
+        }));
+        return { ok: true, presets: list };
+      }
+
+      case 'applyPreset': {
+        const preset = (self.PRESETS || {})[msg.presetId];
+        if (!preset) return { ok: false, error: `Unknown preset: ${msg.presetId}` };
+        const result = await applyOpsToActiveTab(preset.ops);
+        // Track in session ops
+        if (msg.origin) {
+          if (!sessionOps[msg.origin]) sessionOps[msg.origin] = [];
+          sessionOps[msg.origin].push(...preset.ops);
+        }
+        return { ok: true, applied: result?.applied || 0, name: preset.name };
       }
 
       case 'contentReady': {

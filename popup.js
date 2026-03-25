@@ -100,6 +100,60 @@ async function sendPrompt() {
 }
 
 sendBtn.addEventListener('click', sendPrompt);
+
+// ── Element Picker ───────────────────────────────────────────────────────
+
+const pickBtn = document.getElementById('pick-btn');
+let pickerActive = false;
+let pickerPollInterval = null;
+
+pickBtn.addEventListener('click', async () => {
+  if (pickerActive) {
+    // Cancel picker
+    pickerActive = false;
+    pickBtn.classList.remove('active');
+    clearInterval(pickerPollInterval);
+    setStatus('Picker cancelled');
+    return;
+  }
+
+  const resp = await chrome.runtime.sendMessage({ type: 'startPicker' });
+  if (!resp.ok) {
+    setStatus(resp.error || 'Could not start picker', 'error');
+    return;
+  }
+
+  pickerActive = true;
+  pickBtn.classList.add('active');
+  setStatus('Click an element on the page...', '');
+
+  // Poll for picker result (popup can't receive messages directly from content script)
+  pickerPollInterval = setInterval(async () => {
+    const r = await chrome.runtime.sendMessage({ type: 'getPickerResult' });
+    if (r.result) {
+      clearInterval(pickerPollInterval);
+      pickerActive = false;
+      pickBtn.classList.remove('active');
+
+      const { selector, tag, dims } = r.result;
+      promptInput.value = `${selector} → `;
+      promptInput.focus();
+      promptInput.setSelectionRange(promptInput.value.length, promptInput.value.length);
+      addMessage(`🎯 Selected: <code>${selector}</code> (${tag}, ${dims.w}×${dims.h})`, 'ai');
+      setStatus('Element selected — type your change', 'success');
+    }
+  }, 300);
+
+  // Auto-cancel after 30s
+  setTimeout(() => {
+    if (pickerActive) {
+      clearInterval(pickerPollInterval);
+      pickerActive = false;
+      pickBtn.classList.remove('active');
+      setStatus('Picker timed out', '');
+    }
+  }, 30000);
+});
 promptInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -184,6 +238,49 @@ document.getElementById('btn-erase').addEventListener('click', async () => {
   if (!confirm(`Erase saved config for ${currentOrigin}?`)) return;
   const resp = await chrome.runtime.sendMessage({ type: 'eraseConfig', origin: currentOrigin });
   setStatus(resp.ok ? 'Config erased' : 'Erase failed', resp.ok ? 'success' : 'error');
+});
+
+// ── Presets ──────────────────────────────────────────────────────────────
+
+const presetsToggle = document.getElementById('presets-toggle');
+const presetsGrid = document.getElementById('presets-grid');
+const toggleArrow = presetsToggle.querySelector('.toggle-arrow');
+let presetsOpen = false;
+const appliedPresets = new Set();
+
+presetsToggle.addEventListener('click', async () => {
+  presetsOpen = !presetsOpen;
+  presetsGrid.style.display = presetsOpen ? 'grid' : 'none';
+  toggleArrow.classList.toggle('open', presetsOpen);
+
+  if (presetsOpen && presetsGrid.children.length === 0) {
+    // Load presets on first open
+    const resp = await chrome.runtime.sendMessage({ type: 'getPresets' });
+    if (resp.ok) {
+      for (const preset of resp.presets) {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.dataset.presetId = preset.id;
+        btn.innerHTML = `<div class="preset-name">${preset.name}</div><div class="preset-desc">${preset.description}</div>`;
+        btn.addEventListener('click', async () => {
+          const r = await chrome.runtime.sendMessage({
+            type: 'applyPreset',
+            presetId: preset.id,
+            origin: currentOrigin,
+          });
+          if (r.ok) {
+            appliedPresets.add(preset.id);
+            btn.classList.add('applied');
+            addMessage(`⚡ ${preset.name} applied (${r.applied} ops)`, 'ai success');
+            setStatus(`${preset.name} active`, 'success');
+          } else {
+            setStatus(r.error || 'Preset failed', 'error');
+          }
+        });
+        presetsGrid.appendChild(btn);
+      }
+    }
+  }
 });
 
 // ── Init ─────────────────────────────────────────────────────────────────
