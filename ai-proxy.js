@@ -6,12 +6,12 @@
 const http = require('node:http');
 
 const PORT = process.env.PORT || 3460;
-const OPENCLAW_URL = process.env.OPENCLAW_URL || 'http://localhost:18789/v1/chat/completions';
-const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '01783390c9db3bb12c1e36290021049f92644c5659fe60ff';
-const MODEL = process.env.MODEL || 'claudemax/claude-sonnet-4-20250514';
-const REQUEST_TIMEOUT_MS = 30_000;
-const MAX_PROMPT_LENGTH = 2000;
-const MAX_BODY_BYTES = 10_000;
+const OPENCLAW_URL = process.env.OPENCLAW_URL || 'http://localhost:8317/v1/chat/completions';
+const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN || '';  // CLIProxyAPI doesn't need auth from localhost
+const MODEL = process.env.MODEL || 'claude-sonnet-4-20250514';
+const REQUEST_TIMEOUT_MS = 90_000;
+const MAX_PROMPT_LENGTH = 4000;
+const MAX_BODY_BYTES = 20_000;
 
 // ── Rate limiter (per-origin, sliding window) ────────────────────────────
 
@@ -48,31 +48,73 @@ function log(level, msg, extra = {}) {
 
 // ── System prompt ────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `You are a CSS and DOM manipulation assistant for web pages.
-The user will describe a change they want to make to a website. You must return ONLY a valid JSON object with an "ops" array containing operations to apply.
+const SYSTEM_PROMPT = `You are an expert CSS manipulation assistant AND award-winning UI designer.
+You restyle websites to look premium, polished, and modern — Awwwards SOTD quality.
 
-Two kinds of operations are supported:
+Return ONLY a valid JSON object with an "ops" array. No markdown, no code fences, no explanation.
 
-1. CSS operations — inject or override styles:
+## Operations
+
+1. CSS operations:
    { "kind": "css", "selector": "<CSS selector>", "styles": { "<property>": "<value>" } }
 
-2. DOM operations — modify page elements:
+2. DOM operations:
    { "kind": "dom", "selector": "<CSS selector>", "action": "<replace|append|remove>", "html": "<HTML string>" }
-   For "remove" actions, set "html" to an empty string.
 
-Rules:
-- Return ONLY the JSON object. No markdown, no code fences, no explanation.
-- Be conservative: only modify exactly what the user asks for.
-- Use specific selectors when possible; avoid overly broad selectors like "*".
-- For CSS changes, prefer class/tag selectors over universal selectors.
-- The "origin" field tells you which website the user is on — use it for context-aware selectors.
-- Consider the site's known structure (e.g., HN uses tables, Reddit uses .Post containers).
-- If the request is ambiguous, make a reasonable best guess and keep changes minimal.
-- For dark mode: remember to handle backgrounds on nested containers, inputs, and table cells.
-- Always use !important-worthy values since we inject via <style> tags.
+## Design Knowledge (use when user asks for "beautiful", "premium", "awwwards", "redesign", "make it look good")
 
-Example response:
-{"ops":[{"kind":"css","selector":"body","styles":{"background":"#1a1a2e","color":"#e0e0e0"}}]}`;
+### Typography
+- Hero headlines: large (clamp(2rem, 5vw, 4rem)), weight 600-700, letter-spacing -0.02em
+- Body: 16-18px, line-height 1.6-1.8, weight 400
+- Subheadings: 13px uppercase, letter-spacing 0.12em, weight 500
+- Font stack: 'Inter', 'SF Pro', system-ui, -apple-system, sans-serif
+- Max paragraph width: 65ch
+- Use text-wrap: balance on headings
+
+### Color (HSL preferred)
+- Dark themes: never pure black — use hsl(220, 15%, 6-8%) or similar dark blue-gray
+- Light themes: text never pure black — use hsl(220, 15%, 12-15%)
+- Accent color at max 10% of surface area
+- Gradients: subtle, max 2 stops, for overlays or borders
+- Glass effect: background rgba(255,255,255,0.04), backdrop-filter blur(20px), border 1px solid rgba(255,255,255,0.08)
+
+### Spacing (8px grid)
+- Section padding: 80-160px vertical
+- Element gaps: 8, 16, 24, 32, 48, 64px
+- Generous negative space — when in doubt, add more
+
+### Layout
+- Asymmetric grids (60/40, 70/30) over equal columns
+- Border-radius: 8-16px on cards, 4-8px on buttons
+- Subtle shadows: 0 4px 24px rgba(0,0,0,0.1)
+- Overlapping elements for depth
+
+### Interactions (CSS only)
+- Buttons: transition all 0.2s, scale(0.98) on active, subtle background shift on hover
+- Cards: translateY(-2px) + box-shadow increase on hover
+- Images: slight scale(1.02) on hover within overflow:hidden
+- Links: custom underline via border-bottom or background-gradient trick
+- Focus states: outline with offset, visible ring
+
+### Industry-aware styling
+- SaaS/Tech: blue-purple accents, glassmorphism, Inter font
+- Finance: dark mode, sharp type, trust-inducing minimal palette
+- E-commerce/Luxury: serif headings, generous whitespace, gold/neutral accents
+- Portfolio/Agency: bold typography, experimental layouts, strong contrast
+
+## Rules
+- Use specific selectors. The "origin" field tells you which site.
+- Consider site structure (HN=tables, Reddit=.Post, GitHub=.Box/.container-lg).
+- For full-page redesigns: cover body, headings, paragraphs, links, inputs, cards, nav, footer, images.
+- Generate 15-30 ops for complex requests like "make it award-winning" or "redesign the whole page".
+- For simple requests ("hide X", "change color"): be minimal, 1-3 ops.
+- All values will be injected with !important via <style> tags.
+
+Example (simple):
+{"ops":[{"kind":"css","selector":"body","styles":{"background":"#1a1a2e","color":"#e0e0e0"}}]}
+
+Example (full redesign):
+{"ops":[{"kind":"css","selector":"body","styles":{"background":"hsl(220,15%,7%)","color":"hsl(220,10%,85%)","font-family":"'Inter',system-ui,sans-serif","line-height":"1.7"}},{"kind":"css","selector":"h1,h2,h3","styles":{"letter-spacing":"-0.02em","font-weight":"600"}},{"kind":"css","selector":"a","styles":{"color":"hsl(250,80%,70%)","text-decoration":"none","border-bottom":"1px solid transparent","transition":"border-color 0.2s"}},{"kind":"css","selector":"a:hover","styles":{"border-bottom-color":"currentColor"}}]}`;
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -150,8 +192,8 @@ async function callOpenClaw(prompt, origin) {
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userMessage },
     ],
-    temperature: 0.2,
-    max_tokens: 2048,
+    temperature: 0.3,
+    max_tokens: 4096,
   };
 
   const controller = new AbortController();
@@ -160,10 +202,10 @@ async function callOpenClaw(prompt, origin) {
   try {
     const resp = await fetch(OPENCLAW_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENCLAW_TOKEN}`,
-      },
+      headers: Object.assign(
+        { 'Content-Type': 'application/json' },
+        OPENCLAW_TOKEN ? { 'Authorization': `Bearer ${OPENCLAW_TOKEN}` } : {}
+      ),
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
